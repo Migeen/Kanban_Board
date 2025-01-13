@@ -49,3 +49,11 @@ export default tseslint.config({
 })
 ```
 # Kanban_Board
+1 npm install create vite 
+2 give project name
+3 choose tsx +swc
+
+4 npm install @dnd-kit/core @dnd-kit/sortable
+5 install tailwindcss
+
+command to run the app - npm run dev
