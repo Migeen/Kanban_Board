@@ -147,7 +147,7 @@ const Kanban = () => {
         const isOveraColumn = over.data.current?.type === "Column";
 
         //Dropping a Task over a column
-        if(isActiveaTask && isOveraColumn){
+        if (isActiveaTask && isOveraColumn) {
             setTasks(tasks => {
                 const activeIndex = tasks.findIndex((t) => t.id ===
                     activeId);
@@ -177,9 +177,9 @@ const Kanban = () => {
             <DndContext
                 sensors={sensors}
                 onDragStart={onDragStart}
-                    onDragOver={onDragOver}
+                onDragOver={onDragOver}
                 onDragEnd={onDragEnd}
-                >
+            >
                 <div className="m-auto flex gap-2">
                     <div className="flex gap-4">
                         <SortableContext items={columnId}>
