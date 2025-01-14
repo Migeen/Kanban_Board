@@ -2,10 +2,11 @@ import { useMemo, useState } from "react"
 import PlusIcons from "../icons/PlusIcons"
 import { Column, Id } from "../types";
 import ColumnContainer from "./ColumnContainer";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext } from "@dnd-kit/sortable";
 import { createPortal } from "react-dom";
 import { Task } from "../types";
+import TaskCard from "./TaskCard";
 
 const Kanban = () => {
 
@@ -21,6 +22,8 @@ const Kanban = () => {
             distance: 3 // 3px
         }
     }))
+
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
 
     function createNewColumn() {
         const columnToAdd = {
@@ -39,6 +42,9 @@ const Kanban = () => {
     function deleteColumn(id: Id) {
         const filteredColumn = columns.filter((col) => col.id !== id);
         setColumns(filteredColumn);
+
+        const newTasks = tasks.filter(t => t.columnId !== id);
+        setTasks(newTasks);
     }
 
     function updateColumn(id: Id, title: string) {
@@ -58,48 +64,102 @@ const Kanban = () => {
         setTasks([...tasks, newTask]);
     }
 
-    function deleteTask(id: Id){
+    function deleteTask(id: Id) {
         const newTasks = tasks.filter((task) => task.id !== id);
         setTasks(newTasks);
     }
-    
-    function updateTask(id: Id, content: string){
+
+    function updateTask(id: Id, content: string) {
         const newTasks = tasks.map((task) => {
-         if  ( task.id !== id) return task;
-         return {...task, content};
+            if (task.id !== id) return task;
+            return { ...task, content };
         });
         setTasks(newTasks);
     }
 
 
     function onDragStart(event: DragStartEvent) {
-        console.log("Drag Start", event);
+
         if (event.active.data.current?.type === "Column") {
             setActiveColumn(event.active.data.current.column);
             return;
         }
+
+        if (event.active.data.current?.type === "Task") {
+            setActiveTask(event.active.data.current.task);
+            return;
+        }
+
     }
 
 
     function onDragEnd(event: DragEndEvent) {
+        setActiveColumn(null);
+        setActiveTask(null);
         const { active, over } = event;
         if (!over) return;
 
-        const activeColumnId = active.id;
-        const overColumnId = over.id;
+        const activeId = active.id;
+        const overId = over.id;
 
-        if (activeColumnId === overColumnId) return;
+        if (activeId === overId) return;
+
         setColumns((columns) => {
             const activeColumnIndex = columns.findIndex(
-                col => col.id === activeColumnId
+                (col) => col.id === activeId
             );
 
             const overColumnIndex = columns.findIndex(
-                col => col.id === overColumnId
+                (col) => col.id === overId
             );
 
             return arrayMove(columns, activeColumnIndex, overColumnIndex)
         })
+    }
+
+    function onDragOver(event: DragOverEvent) {
+        const { active, over } = event;
+        if (!over) return;
+
+        const activeId = active.id;
+        const overId = over.id;
+
+        if (activeId === overId) return;
+
+        const isActiveaTask = active.data.current?.type === "Task";
+        const isOveraTask = over.data.current?.type === "Task";
+        if (!isActiveaTask) return;
+
+        //Dropping a Task over another
+        if (isActiveaTask && isOveraTask) {
+            setTasks(tasks => {
+                const activeIndex = tasks.findIndex((t) => t.id ===
+                    activeId);
+                const overIndex = tasks.findIndex((t) => t.id === overId);
+
+                tasks[activeIndex].columnId = tasks[overIndex].columnId;
+
+                return arrayMove(tasks, activeIndex, overIndex);
+            });
+            return 0;
+        }
+
+        const isOveraColumn = over.data.current?.type === "Column";
+
+        //Dropping a Task over a column
+        if(isActiveaTask && isOveraColumn){
+            setTasks(tasks => {
+                const activeIndex = tasks.findIndex((t) => t.id ===
+                    activeId);
+
+
+
+                tasks[activeIndex].columnId = overId;
+
+                return arrayMove(tasks, activeIndex, activeIndex);
+            });
+        }
+
     }
 
     return (
@@ -117,7 +177,9 @@ const Kanban = () => {
             <DndContext
                 sensors={sensors}
                 onDragStart={onDragStart}
-                onDragEnd={onDragEnd}>
+                    onDragOver={onDragOver}
+                onDragEnd={onDragEnd}
+                >
                 <div className="m-auto flex gap-2">
                     <div className="flex gap-4">
                         <SortableContext items={columnId}>
@@ -131,7 +193,7 @@ const Kanban = () => {
                                     tasks={tasks.filter(task => task.columnId === col.id)}
                                     deleteTask={deleteTask}
                                     updateTask={updateTask}
-                                    />
+                                />
                             ))
                             }
                         </SortableContext>
@@ -160,12 +222,15 @@ const Kanban = () => {
                         column={activeColumn}
                         deleteColumn={deleteColumn}
                         updateColumn={updateColumn}
-                        createTask={createTask} 
+                        createTask={createTask}
                         tasks={tasks.filter(task => task.columnId === activeColumn.id)}
                         deleteTask={deleteTask}
                         updateTask={updateTask}
-                        
-                    />}
+
+                    />}{
+                        activeTask && <TaskCard task={activeTask}
+                            deleteTask={deleteTask} updateTask={updateTask} />
+                    }
                 </DragOverlay>,
                     document.body)}
             </DndContext>

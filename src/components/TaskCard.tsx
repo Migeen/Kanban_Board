@@ -35,6 +35,19 @@ const TaskCard = ({ task, deleteTask, updateTask }: Props) => {
         setMouseIsOver(false);
     }
 
+    if(isDragging){
+        return(
+            <div ref={setNodeRef} 
+            style={style}
+             className="
+             bg-mainBackgroundColor p-2.5 h-[100px]
+             opacity-30 border-2 border-rose-500
+            min-h-[100px] items-center flex text-left
+            rounded-xl cursor-grab relative
+            "/>
+        )
+    }
+
     if (editMode) {
         return (
             <div
